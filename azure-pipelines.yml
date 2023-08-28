@@ -40,7 +40,7 @@ jobs:
 - job: Linux_x86_64_Clang8
   timeoutInMinutes: 180
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   steps:
   - bash: |
       set -e
@@ -92,7 +92,7 @@ jobs:
 - job: Linux_x86_64_GCC7
   timeoutInMinutes: 180
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   steps:
   - bash: |
       set -e
@@ -102,7 +102,7 @@ jobs:
 - job: Linux_x86_64_GCC8
   timeoutInMinutes: 180
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   steps:
   - bash: |
       set -e
@@ -141,29 +141,25 @@ jobs:
       sudo ln -s $(Agent.TempDirectory)/sde-bin/sde64 /usr/bin/sde
       ci/run.sh build-release -DKFR_ARCH_TESTS=sse2,sse3,sse41,avx,avx2 -DKFR_USE_SDE=ON -DKFR_ARCH=avx2 -DKFR_ENABLE_DFT=OFF -DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_BUILD_TYPE=Release
 
-- job: Linux_ARM_Clang9_Release
+- job: Linux_ARM_Clang12_Release
   timeoutInMinutes: 180
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   steps:
   - bash: |
       set -e
-      sudo apt-get update && sudo apt-get install -y ninja-build g++-arm-linux-gnueabihf qemu clang-9
-      sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 100
-      sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 100
-      ci/run.sh build-release -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DGCC_VER=7.5.0 -DCMAKE_TOOLCHAIN_FILE=../cmake/arm.cmake
+      sudo apt-get update && sudo apt-get install -y ninja-build g++-arm-linux-gnueabihf qemu qemu-system-arm qemu-user clang-12
+      ci/run.sh build-release -DENABLE_TESTS=ON -DENABLE_EXAMPLES=OFF -DCLANG_SUFFIX=-12 -DCMAKE_BUILD_TYPE=Release -DGCC_VER=9 -DCMAKE_TOOLCHAIN_FILE=../cmake/arm.cmake
 
-- job: Linux_ARM64_Clang9_Release
+- job: Linux_ARM64_Clang12_Release
   timeoutInMinutes: 180
   pool:
-    vmImage: 'ubuntu-18.04'
+    vmImage: 'ubuntu-20.04'
   steps:
   - bash: |
       set -e
-      sudo apt-get update && sudo apt-get install -y ninja-build g++-aarch64-linux-gnu qemu clang-9
-      sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 100
-      sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 100
-      ci/run.sh build-release -DENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DGCC_VER=7.5.0 -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64.cmake
+      sudo apt-get update && sudo apt-get install -y ninja-build g++-aarch64-linux-gnu qemu qemu-system-arm qemu-user clang-12
+      ci/run.sh build-release -DENABLE_TESTS=ON -DENABLE_EXAMPLES=OFF -DCLANG_SUFFIX=-12 -DCMAKE_BUILD_TYPE=Release -DGCC_VER=9 -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64.cmake
 
 - job: macOSBigSur_x86_64_Clang_Release
   timeoutInMinutes: 180
@@ -185,7 +181,7 @@ jobs:
       xcode11:
         XCODE_VER: 11.7
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macOS-11'
   steps:
   - bash: |
       set -e
@@ -198,11 +194,11 @@ jobs:
   strategy:
     matrix:
       xcode11:
-        XCODE_VER: 11.3
+        XCODE_VER: 13.2.1
       xcode10:
-        XCODE_VER: 10.3
+        XCODE_VER: 12.5.1
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macOS-11'
   steps:
   - bash: |
       set -e
@@ -224,22 +220,20 @@ jobs:
 - job: iOS_ARM_Clang_Release
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macOS-11'
   steps:
   - bash: |
       set -e
-      /bin/bash -c "sudo xcode-select -s /Applications/Xcode_11.7.app/Contents/Developer"
       brew install ninja
       ci/run.sh build-release -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.cmake -DCMAKE_BUILD_TYPE=Release -DIOS_PLATFORM=OS -DIOS_ARCH=armv7 -DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja -DKFR_SKIP_TESTS=ON
 
 - job: iOS_ARM64_Clang_Release
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macOS-11'
   steps:
   - bash: |
       set -e
-      /bin/bash -c "sudo xcode-select -s /Applications/Xcode_11.7.app/Contents/Developer"
       brew install ninja
       ci/run.sh build-release -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.cmake -DCMAKE_BUILD_TYPE=Release -DIOS_PLATFORM=OS64 -DIOS_ARCH=arm64 -DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja -DKFR_SKIP_TESTS=ON
 

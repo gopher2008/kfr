@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2022 Fractalium Ltd (https://www.kfrlib.com)
+  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -115,8 +115,8 @@ struct representation<fmt_t<kfr::complex<T>, t, width, prec>>
     using type = std::string;
     static std::string get(const fmt_t<kfr::complex<T>, t, width, prec>& value)
     {
-        return as_string(fmt<t, width, prec>(value.value.real())) + " + " +
-               as_string(fmt<t, width, prec>(value.value.imag())) + "j";
+        return as_string(cometa::fmt<t, width, prec>(value.value.real())) + " + " +
+               as_string(cometa::fmt<t, width, prec>(value.value.imag())) + "j";
     }
 };
 } // namespace cometa

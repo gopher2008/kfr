@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2022 Fractalium Ltd (https://www.kfrlib.com)
+  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -1012,7 +1012,7 @@ struct expression_trace : public expression_with_traits<E>
                                                          axis_params<VecAxis, N> sh)
     {
         const vec<value_type, N> in = get_elements(self.first(), index, sh);
-        println("[", fmt<'s', 16>(array_to_string(dims, index.data(), INT_MAX, INT_MAX, ",", "", "")),
+        println("[", cometa::fmt<'s', 16>(array_to_string(dims, index.data(), INT_MAX, INT_MAX, ",", "", "")),
                 "] = ", in);
         return in;
     }

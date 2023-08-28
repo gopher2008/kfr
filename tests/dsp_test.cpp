@@ -1,6 +1,6 @@
 /**
- * KFR (http://kfrlib.com)
- * Copyright (C) 2016-2022 Fractalium Ltd
+ * KFR (https://www.kfrlib.com)
+ * Copyright (C) 2016-2023 Dan Cazarin
  * See LICENSE.txt for details
  */
 
@@ -66,6 +66,13 @@ TEST(mixdown_stereo)
     CHECK_EXPRESSION(side, 21, [](size_t i) { return i - (i * 2.0 + 100.0); });
 }
 
+TEST(sine_type)
+{
+    double ph = 0.0;
+    using T   = decltype(sine(ph));
+    static_assert(std::is_same_v<T, double>);
+}
+
 TEST(phasor)
 {
     constexpr fbase sr       = 44100.0;
@@ -80,6 +87,22 @@ void test_ir(E&& e, const univector<T, size>& test_vector)
     substitute(e, to_handle(unitimpulse<T>()));
     const univector<T, size> ir = e;
     println(absmaxof(ir - test_vector));
+}
+
+TEST(gen_sin)
+{
+    kfr::univector<kfr::fbase> x;
+    constexpr size_t size = 132;
+    kfr::fbase step       = kfr::c_pi<kfr::fbase> / (size + 1);
+    kfr::univector<kfr::fbase> up;
+    up = kfr::truncate(kfr::gen_sin<kfr::fbase>(kfr::c_pi<kfr::fbase> / 2, step), size);
+
+    kfr::univector<kfr::fbase> up2(size);
+    for (int i = 0; i < size; ++i)
+    {
+        up2[i] = std::sin(kfr::c_pi<kfr::fbase> / 2 + i * step);
+    }
+    CHECK(rms(up - up2) < 0.00001);
 }
 
 } // namespace CMT_ARCH_NAME
