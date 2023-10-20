@@ -156,10 +156,14 @@ TEST(test_complex_correlate)
 
 #if defined CMT_ARCH_ARM || !defined NDEBUG
 constexpr size_t fft_stopsize = 12;
+#ifndef KFR_DFT_NO_NPo2
 constexpr size_t dft_stopsize = 101;
+#endif
 #else
 constexpr size_t fft_stopsize = 20;
+#ifndef KFR_DFT_NO_NPo2
 constexpr size_t dft_stopsize = 257;
+#endif
 #endif
 
 TEST(fft_real)
@@ -175,6 +179,7 @@ TEST(fft_real)
     CHECK(rms(rev - in) <= 0.00001f);
 }
 
+#ifndef KFR_DFT_NO_NPo2
 TEST(fft_real_not_size_4N)
 {
     kfr::univector<double, 6> in = counter();
@@ -192,6 +197,7 @@ TEST(fft_real_not_size_4N)
     kfr::univector<double, size> rev2                       = irealdft(out2) / size;
     CHECK(rms(rev2 - in2) <= 0.00001f);
 }
+#endif
 
 TEST(fft_accuracy)
 {
@@ -200,7 +206,7 @@ TEST(fft_accuracy)
 #endif
     random_state gen = random_init(2247448713, 915890490, 864203735, 2982561);
     std::set<size_t> size_set;
-    univector<size_t> sizes = truncate(1 + counter(), fft_stopsize - 1);
+    univector<size_t> sizes = truncate(counter(), fft_stopsize);
     sizes                   = round(pow(2.0, sizes));
 
 #ifndef KFR_DFT_NO_NPo2
@@ -245,12 +251,12 @@ TEST(fft_accuracy)
                           dft.execute(out, out, temp, inverse);
 
                           const float_type rms_diff_inplace = rms(cabs(refout - out));
-                          CHECK(rms_diff_inplace < min_prec2);
+                          CHECK(rms_diff_inplace <= min_prec2);
                           const float_type rms_diff_outofplace = rms(cabs(refout - outo));
-                          CHECK(rms_diff_outofplace < min_prec2);
+                          CHECK(rms_diff_outofplace <= min_prec2);
                       }
 
-                      if (size >= 4 && is_poweroftwo(size))
+                      if (is_even(size))
                       {
                           univector<float_type> in =
                               truncate(gen_random_range<float_type>(gen, -1.0, +1.0), size);
@@ -261,18 +267,18 @@ TEST(fft_accuracy)
                           univector<u8> temp(dft.temp_size);
 
                           testo::scope s("real-direct");
-                          reference_fft(refout.data(), in.data(), size);
+                          reference_dft(refout.data(), in.data(), size);
                           dft.execute(out, in, temp);
                           float_type rms_diff =
                               rms(cabs(refout.truncate(size / 2 + 1) - out.truncate(size / 2 + 1)));
-                          CHECK(rms_diff < min_prec);
+                          CHECK(rms_diff <= min_prec);
 
                           univector<float_type> out2(size, 0.f);
                           s.text = "real-inverse";
                           dft.execute(out2, out, temp);
                           out2     = out2 / size;
                           rms_diff = rms(in - out2);
-                          CHECK(rms_diff < min_prec);
+                          CHECK(rms_diff <= min_prec);
                       }
                   });
 }

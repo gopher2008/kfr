@@ -30,6 +30,9 @@
 #include <algorithm>
 #include <utility>
 
+CMT_PRAGMA_MSVC(warning(push))
+CMT_PRAGMA_MSVC(warning(disable : 4244))
+
 namespace kfr
 {
 inline namespace CMT_ARCH_NAME
@@ -179,12 +182,12 @@ KFR_INTRINSIC mask<C, N> operator^(const mask<T1, N>& x, const mask<T2, N>& y) C
 template <typename T, size_t N>
 KFR_INTRINSIC mask<T, N> operator~(const mask<T, N>& x) CMT_NOEXCEPT
 {
-    return ~x.asvec();
+    return mask<T, N>(~x.asvec());
 }
 template <typename T, size_t N>
 KFR_INTRINSIC mask<T, N> operator!(const mask<T, N>& x) CMT_NOEXCEPT
 {
-    return ~x.asvec();
+    return mask<T, N>(~x.asvec());
 }
 
 KFR_INTRINSIC float bitwisenot(float x) { return fbitcast(~ubitcast(x)); }
@@ -215,7 +218,7 @@ KFR_INTRINSIC std::common_type_t<T1, T2> bitwiseand(const T1& x, const T2& y)
 template <typename T>
 constexpr KFR_INTRINSIC T bitwiseand(initialvalue<T>)
 {
-    return constants<T>::allones();
+    return special_constants<T>::allones();
 }
 KFR_FN(bitwiseand)
 
@@ -228,7 +231,7 @@ KFR_INTRINSIC std::common_type_t<T1, T2> bitwiseandnot(const T1& x, const T2& y)
 template <typename T>
 constexpr inline T bitwiseandnot(initialvalue<T>)
 {
-    return constants<T>::allones();
+    return special_constants<T>::allones();
 }
 KFR_FN(bitwiseandnot)
 
@@ -659,3 +662,5 @@ KFR_I_CE vec<bit<T>, N>::vec(const base& v) CMT_NOEXCEPT
 
 } // namespace CMT_ARCH_NAME
 } // namespace kfr
+
+CMT_PRAGMA_MSVC(warning(pop))

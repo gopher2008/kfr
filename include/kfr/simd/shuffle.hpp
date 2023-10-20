@@ -34,6 +34,7 @@
 
 CMT_PRAGMA_MSVC(warning(push))
 CMT_PRAGMA_MSVC(warning(disable : 5051))
+CMT_PRAGMA_MSVC(warning(disable : 4244))
 
 namespace kfr
 {
@@ -244,7 +245,7 @@ KFR_INTRINSIC vec<T, count> concat_and_slice(const vec<T, N1>& x, const vec<T, N
 template <size_t start, size_t count, typename T, size_t N1, size_t N2, KFR_ENABLE_IF(N1 < N2)>
 KFR_INTRINSIC vec<T, count> concat_and_slice(const vec<T, N1>& x, const vec<T, N2>& y)
 {
-    return x.shuffle(csizeseq<N2, -(N2 - N1)>)
+    return x.shuffle(csizeseq<N2, N1 - N2>)
         .shuffle(y, csizeseq<N2 * 2>)
         .shuffle(csizeseq<count, N2 - N1 + start>);
 }
@@ -365,12 +366,12 @@ namespace internal
 template <typename T, size_t N>
 KFR_INTRINSIC mask<T, N> evenmask()
 {
-    return broadcast<N>(maskbits<T>(true), maskbits<T>(false));
+    return mask<T, N>(broadcast<N>(maskbits<T>(true), maskbits<T>(false)));
 }
 template <typename T, size_t N>
 KFR_INTRINSIC mask<T, N> oddmask()
 {
-    return broadcast<N>(maskbits<T>(false), maskbits<T>(true));
+    return mask<T, N>(broadcast<N>(maskbits<T>(false), maskbits<T>(true)));
 }
 } // namespace internal
 
@@ -461,7 +462,7 @@ KFR_INTRINSIC vec<T, N> transpose(const vec<T, N>& x)
 template <typename T, size_t N>
 KFR_INTRINSIC vec<vec<T, N>, N> transpose(const vec<vec<T, N>, N>& x)
 {
-    return vec<vec<T, N>, N>::from_flatten(transpose<2>(x.flatten()));
+    return vec<vec<T, N>, N>::from_flatten(transpose<N>(x.flatten()));
 }
 KFR_FN(transpose)
 

@@ -85,6 +85,7 @@ CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wpacked")
 
 CMT_PRAGMA_MSVC(warning(push))
 CMT_PRAGMA_MSVC(warning(disable : 4814))
+CMT_PRAGMA_MSVC(warning(disable : 4244))
 
 namespace kfr
 {
@@ -204,7 +205,19 @@ inline constexpr size_t vec_alignment =
                         next_poweroftwo(sizeof(typename compound_type_traits<T>::deep_subtype) *
                                         const_max(size_t(1), N_) * compound_type_traits<T>::deep_width)));
 
+template <typename T>
+struct is_vec_impl : std::false_type
+{
+};
+
+template <typename T, size_t N>
+struct is_vec_impl<vec<T, N>> : std::true_type
+{
+};
 } // namespace internal
+
+template <typename T>
+constexpr inline bool is_vec = internal::is_vec_impl<T>::value;
 
 template <typename T, size_t N_>
 struct alignas(internal::vec_alignment<T, N_>) vec
@@ -249,7 +262,7 @@ struct alignas(internal::vec_alignment<T, N_>) vec
     // default
     KFR_MEM_INTRINSIC constexpr vec() CMT_NOEXCEPT {}
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#ifdef CMT_COMPILER_IS_MSVC
     // MSVC Internal Compiler Error workaround
     // copy
     KFR_MEM_INTRINSIC constexpr vec(const vec& value) CMT_NOEXCEPT : v(value.v) {}
@@ -283,7 +296,7 @@ struct alignas(internal::vec_alignment<T, N_>) vec
               KFR_ENABLE_IF(std::is_convertible_v<U, value_type>&& compound_type_traits<T>::is_scalar)>
     KFR_MEM_INTRINSIC vec(const U& s) CMT_NOEXCEPT
         : v(intrinsics::simd_broadcast(intrinsics::simd_t<unwrap_bit<ST>, SN>{},
-                                       static_cast<unwrap_bit<ST>>(static_cast<ST>(s))))
+                                       unwrap_bit_value(static_cast<ST>(s))))
     {
     }
 
@@ -317,6 +330,19 @@ struct alignas(internal::vec_alignment<T, N_>) vec
     KFR_MEM_INTRINSIC vec(const vec<U, N>& x) CMT_NOEXCEPT
         : v(intrinsics::simd_convert(
               intrinsics::simd_cvt_t<unwrap_bit<ST>, unwrap_bit<deep_subtype<U>>, SN>{}, x.v))
+    {
+    }
+
+    // from mask of the same type
+    template <typename U = T, KFR_ENABLE_IF(!is_bit<U> && compound_type_traits<T>::is_scalar)>
+    KFR_MEM_INTRINSIC explicit vec(
+        const vec<std::conditional_t<compound_type_traits<T>::is_scalar, bit<T>, T>, N>& x) CMT_NOEXCEPT
+        : v(x.v)
+    {
+    }
+    // from vec to mask of the same type
+    template <typename U = T, KFR_ENABLE_IF(is_bit<U>&& compound_type_traits<T>::is_scalar)>
+    KFR_MEM_INTRINSIC explicit vec(const vec<unwrap_bit<T>, N>& x) CMT_NOEXCEPT : v(x.v)
     {
     }
 
@@ -412,12 +438,14 @@ struct alignas(internal::vec_alignment<T, N_>) vec
               KFR_ENABLE_IF(dummy == 0 && !compound_type_traits<T>::is_scalar)>
     KFR_MEM_INTRINSIC constexpr value_type get(size_t index) const CMT_NOEXCEPT
     {
+        value_type result{};
         union
         {
             simd_type v;
-            T s[N];
+            ST s[SN];
         } u{ this->v };
-        return u.s[index];
+        memcpy(&result, &u.s[index * (SN / N)], sizeof(ST) * (SN / N));
+        return result;
     }
 
     template <size_t index, KFR_ENABLE_IF(index < 1024 && compound_type_traits<T>::is_scalar)>
@@ -474,6 +502,14 @@ struct alignas(internal::vec_alignment<T, N_>) vec
     struct element
     {
         constexpr operator value_type() const CMT_NOEXCEPT { return v.get(index); }
+
+        template <typename U = T, CMT_ENABLE_IF(is_vec<U>)>
+        KFR_MEM_INTRINSIC typename U::value_type operator[](size_t index) CMT_NOEXCEPT
+        {
+            return v.get(this->index)[index];
+        }
+        KFR_MEM_INTRINSIC value_type operator+() CMT_NOEXCEPT { return v.get(index); }
+        KFR_MEM_INTRINSIC value_type operator-() CMT_NOEXCEPT { return -v.get(index); }
 
         KFR_MEM_INTRINSIC element& operator=(const value_type& s) CMT_NOEXCEPT
         {
@@ -594,22 +630,6 @@ KFR_INTRINSIC vec<T, sizeof...(indices)> shufflevectors(const vec<T, N>& x, cons
 {
     return intrinsics::simd_shuffle(intrinsics::simd2_t<T, N, N>{}, x.v, y.v, i, overload_auto);
 }
-
-namespace internal
-{
-template <typename T>
-struct is_vec_impl : std::false_type
-{
-};
-
-template <typename T, size_t N>
-struct is_vec_impl<vec<T, N>> : std::true_type
-{
-};
-} // namespace internal
-
-template <typename T>
-constexpr inline bool is_vec = internal::is_vec_impl<T>::value;
 
 CMT_PRAGMA_GNU(GCC diagnostic push)
 CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wold-style-cast")
