@@ -273,7 +273,7 @@ constexpr CMT_INTRINSIC T val_of(T value)
     return value;
 }
 
-#define CMT_CVAL(...) ::cometa::val_of(decltype(__VA_ARGS__)())
+#define CMT_CVAL(...) (decltype(__VA_ARGS__)::value)
 
 template <typename T>
 constexpr CMT_INTRINSIC bool is_constant_val(T)
@@ -1099,6 +1099,9 @@ using findinttype = typename details::findinttype_impl<min, max, uint8_t, int8_t
 template <typename T>
 constexpr inline bool is_number = details::is_number_impl<std::decay_t<T>>::value;
 
+template <typename T>
+constexpr inline bool is_number_or_bool = is_number<T> || std::is_same_v<std::decay_t<T>, bool>;
+
 template <typename... Ts>
 constexpr inline bool is_numbers = (details::is_number_impl<std::decay_t<Ts>>::value && ...);
 
@@ -1109,6 +1112,10 @@ constexpr inline bool is_numeric = is_number<deep_subtype<T>>;
 /// @brief Check if the type arguments are a numbers or a vectors of numbers
 template <typename... Ts>
 constexpr inline bool is_numeric_args = (is_numeric<Ts> && ...);
+
+/// @brief Check if the type argument is a number, bool or a vector of numbers of bool
+template <typename T>
+constexpr inline bool is_numeric_or_bool = is_number_or_bool<deep_subtype<T>>;
 
 namespace details
 {
@@ -1348,34 +1355,39 @@ struct fn_return_constant
 };
 
 template <typename T1, typename T2>
-CMT_INTRINSIC bool is_equal(const T1& x, const T2& y)
+CMT_INTRINSIC constexpr bool is_equal(const T1& x, const T2& y)
 {
     return x == y;
 }
 template <typename T1, typename T2>
-CMT_INTRINSIC bool is_notequal(const T1& x, const T2& y)
+CMT_INTRINSIC constexpr bool is_notequal(const T1& x, const T2& y)
 {
     return x != y;
 }
 template <typename T1, typename T2>
-CMT_INTRINSIC bool is_less(const T1& x, const T2& y)
+CMT_INTRINSIC constexpr bool is_less(const T1& x, const T2& y)
 {
     return x < y;
 }
 template <typename T1, typename T2>
-CMT_INTRINSIC bool is_greater(const T1& x, const T2& y)
+CMT_INTRINSIC constexpr bool is_greater(const T1& x, const T2& y)
 {
     return x > y;
 }
 template <typename T1, typename T2>
-CMT_INTRINSIC bool is_lessorequal(const T1& x, const T2& y)
+CMT_INTRINSIC constexpr bool is_lessorequal(const T1& x, const T2& y)
 {
     return x <= y;
 }
 template <typename T1, typename T2>
-CMT_INTRINSIC bool is_greaterorequal(const T1& x, const T2& y)
+CMT_INTRINSIC constexpr bool is_greaterorequal(const T1& x, const T2& y)
 {
     return x >= y;
+}
+template <typename T>
+CMT_INTRINSIC constexpr bool is_between(T value, identity<T> min, identity<T> max)
+{
+    return value >= min && value <= max;
 }
 CMT_FN(is_equal)
 CMT_FN(is_notequal)
@@ -1383,6 +1395,7 @@ CMT_FN(is_less)
 CMT_FN(is_greater)
 CMT_FN(is_lessorequal)
 CMT_FN(is_greaterorequal)
+CMT_FN(is_between)
 
 namespace details
 {
@@ -1420,6 +1433,18 @@ struct has_data_size_impl<T,
 {
 };
 
+template <typename, typename = void>
+struct has_data_size_free_impl : std::false_type
+{
+};
+
+template <typename T>
+struct has_data_size_free_impl<
+    T, std::void_t<decltype(std::size(std::declval<T>())), decltype(std::data(std::declval<T>()))>>
+    : std::true_type
+{
+};
+
 template <typename, typename Fallback, typename = void>
 struct value_type_impl
 {
@@ -1438,6 +1463,9 @@ constexpr inline bool has_begin_end = details::has_begin_end_impl<std::decay_t<T
 
 template <typename T>
 constexpr inline bool has_data_size = details::has_data_size_impl<std::decay_t<T>>::value;
+
+#define CMT_HAS_DATA_SIZE(CONTAINER)                                                                         \
+    std::enable_if_t<details::has_data_size_free_impl<CONTAINER>::value>* = nullptr
 
 template <typename T>
 using value_type_of = typename std::decay_t<T>::value_type;

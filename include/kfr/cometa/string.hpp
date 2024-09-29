@@ -407,6 +407,7 @@ CMT_INLINE void errorln(const Args&... args)
     constexpr const auto format_str = concat_cstring(details::get_value_fmt<Args>()..., make_cstring("\n"));
     const char* str                 = format_str.data();
     std::fprintf(stderr, str, details::pack_value(representation<Args>::get(args))...);
+    std::fflush(stderr);
 }
 
 template <typename... Args>
@@ -653,15 +654,15 @@ std::string array_to_string(size_t size, Getter&& getter, int max_columns = 16, 
                             std::string_view separator = ", ", std::string_view open = "{",
                             std::string_view close = "}")
 {
-    return array_to_string(std::array<size_t, 1>{ size }, std::forward<Getter>(getter), max_columns,
-                           max_dimensions, std::move(separator), std::move(open), std::move(close));
+    return array_to_string<Fmt>(std::array<size_t, 1>{ size }, std::forward<Getter>(getter), max_columns,
+                                max_dimensions, std::move(separator), std::move(open), std::move(close));
 }
 template <typename Fmt = void, typename T>
 std::string array_to_string(size_t size, T* data, int max_columns = 16, int max_dimensions = INT_MAX,
                             std::string_view separator = ", ", std::string_view open = "{",
                             std::string_view close = "}")
 {
-    return array_to_string(
+    return array_to_string<Fmt>(
         std::array<size_t, 1>{ size }, [data](std::array<size_t, 1> i) { return data[i.front()]; },
         max_columns, max_dimensions, std::move(separator), std::move(open), std::move(close));
 }
@@ -682,6 +683,15 @@ struct representation<std::vector<T, Allocator>>
     static std::string get(const std::vector<T, Allocator>& value)
     {
         return array_to_string(value.size(), value.data());
+    }
+};
+template <>
+struct representation<std::string_view>
+{
+    using type = std::string;
+    static std::string get(const std::string_view& value)
+    {
+        return std::string(value);
     }
 };
 

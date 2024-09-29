@@ -55,8 +55,12 @@
 #else
 #define KFR_API_SPEC KFR_CDECL __declspec(dllimport)
 #endif
+#else // !WIN32
+#ifdef KFR_BUILDING_DLL
+#define KFR_API_SPEC KFR_CDECL __attribute__((visibility("default")))
 #else
 #define KFR_API_SPEC KFR_CDECL
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -77,12 +81,14 @@ extern "C"
         KFR_ARCH_AVX512 = 8,
     };
 
-#define KFR_HEADERS_VERSION 40200
+#define KFR_HEADERS_VERSION 60000
 
     KFR_API_SPEC const char* kfr_version_string();
     KFR_API_SPEC uint32_t kfr_version();
     KFR_API_SPEC const char* kfr_enabled_archs();
     KFR_API_SPEC int kfr_current_arch();
+
+    KFR_API_SPEC const char* kfr_last_error();
 
     typedef float kfr_f32;
     typedef double kfr_f64;

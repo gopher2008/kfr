@@ -46,9 +46,6 @@ enum class sample_rate_conversion_quality : int
     perfect = 12,
 };
 
-inline namespace CMT_ARCH_NAME
-{
-
 using resample_quality = sample_rate_conversion_quality;
 
 /// @brief Sample Rate converter
@@ -58,13 +55,16 @@ struct samplerate_converter
     using itype = i64;
     using ftype = subtype<T>;
 
-private:
+protected:
     KFR_MEM_INTRINSIC ftype window(ftype n) const
     {
         return modzerobessel(kaiser_beta * sqrt(1 - sqr(2 * n - 1))) * reciprocal(modzerobessel(kaiser_beta));
     }
-    KFR_MEM_INTRINSIC ftype sidelobe_att() const { return kaiser_beta / 0.1102 + 8.7; }
-    KFR_MEM_INTRINSIC ftype transition_width() const { return (sidelobe_att() - 8) / (depth - 1) / 2.285; }
+    KFR_MEM_INTRINSIC ftype sidelobe_att() const { return static_cast<ftype>(kaiser_beta / 0.1102 + 8.7); }
+    KFR_MEM_INTRINSIC ftype transition_width() const
+    {
+        return static_cast<ftype>((sidelobe_att() - 8) / (depth - 1) / 2.285);
+    }
 
 public:
     static KFR_MEM_INTRINSIC size_t filter_order(sample_rate_conversion_quality quality)
@@ -95,40 +95,7 @@ public:
     }
 
     samplerate_converter(sample_rate_conversion_quality quality, itype interpolation_factor,
-                         itype decimation_factor, ftype scale = ftype(1), ftype cutoff = 0.5f)
-        : kaiser_beta(window_param(quality)), depth(static_cast<itype>(filter_order(quality))),
-          input_position(0), output_position(0)
-    {
-        const i64 gcf = gcd(interpolation_factor, decimation_factor);
-        interpolation_factor /= gcf;
-        decimation_factor /= gcf;
-
-        taps  = depth * interpolation_factor;
-        order = size_t(depth * interpolation_factor - 1);
-
-        this->interpolation_factor = interpolation_factor;
-        this->decimation_factor    = decimation_factor;
-
-        const itype halftaps = taps / 2;
-        filter               = univector<T>(size_t(taps), T());
-        delay                = univector<T>(size_t(depth), T());
-
-        cutoff = cutoff - transition_width() / c_pi<ftype, 4>;
-
-        cutoff = cutoff / std::max(decimation_factor, interpolation_factor);
-
-        for (itype j = 0, jj = 0; j < taps; j++)
-        {
-            filter[size_t(j)] =
-                sinc((jj - halftaps) * cutoff * c_pi<ftype, 2>) * window(ftype(jj) / ftype(taps - 1));
-            jj += size_t(interpolation_factor);
-            if (jj >= taps)
-                jj = jj - taps + 1;
-        }
-
-        const T s = reciprocal(sum(filter)) * static_cast<ftype>(interpolation_factor * scale);
-        filter    = filter * s;
-    }
+                         itype decimation_factor, ftype scale = ftype(1), ftype cutoff = 0.5f);
 
     KFR_MEM_INTRINSIC itype input_position_to_intermediate(itype in_pos) const
     {
@@ -186,56 +153,9 @@ public:
     template <univector_tag Tag>
     size_t process(univector<T, Tag>& output, univector_ref<const T> input)
     {
-        const itype required_input_size = input_size_for_output(output.size());
-
-        const itype input_size = input.size();
-        for (size_t i = 0; i < output.size(); i++)
-        {
-            const itype intermediate_index =
-                output_position_to_intermediate(static_cast<itype>(i) + output_position);
-            const itype intermediate_start = intermediate_index - taps + 1;
-            const std::lldiv_t input_pos =
-                floor_div(intermediate_start + interpolation_factor - 1, interpolation_factor);
-            const itype input_start        = input_pos.quot; // first input sample
-            const itype tap_start          = interpolation_factor - 1 - input_pos.rem;
-            const univector_ref<T> tap_ptr = filter.slice(static_cast<size_t>(tap_start * depth));
-
-            if (input_start >= input_position + input_size)
-            {
-                output[i] = T(0);
-            }
-            else if (input_start >= input_position)
-            {
-                output[i] =
-                    dotproduct(truncate(padded(input.slice(input_start - input_position, depth)), depth),
-                               tap_ptr.truncate(depth));
-            }
-            else
-            {
-                const itype prev_count = input_position - input_start;
-                output[i] =
-                    dotproduct(delay.slice(size_t(depth - prev_count)), tap_ptr.truncate(prev_count)) +
-                    dotproduct(truncate(padded(input.truncate(size_t(depth - prev_count))),
-                                        size_t(depth - prev_count)),
-                               tap_ptr.slice(size_t(prev_count), size_t(depth - prev_count)));
-            }
-        }
-
-        if (required_input_size >= depth)
-        {
-            delay.slice(0, delay.size()) = padded(input.slice(size_t(required_input_size - depth)));
-        }
-        else
-        {
-            delay.truncate(size_t(depth - required_input_size)) = delay.slice(size_t(required_input_size));
-            delay.slice(size_t(depth - required_input_size))    = padded(input);
-        }
-
-        input_position += required_input_size;
-        output_position += output.size();
-
-        return required_input_size;
+        return process_impl(output.slice(), input);
     }
+
     KFR_MEM_INTRINSIC double get_fractional_delay() const { return (taps - 1) * 0.5 / decimation_factor; }
     KFR_MEM_INTRINSIC size_t get_delay() const { return static_cast<size_t>(get_fractional_delay()); }
 
@@ -247,9 +167,16 @@ public:
     itype decimation_factor;
     univector<T> filter;
     univector<T> delay;
+
+protected:
     itype input_position;
     itype output_position;
+
+    size_t process_impl(univector_ref<T> output, univector_ref<const T> input);
 };
+
+inline namespace CMT_ARCH_NAME
+{
 
 namespace internal
 {
@@ -339,7 +266,7 @@ struct expression_downsample<2, offset, E> : expression_with_arguments<E>
     KFR_INTRINSIC friend vec<T, N> get_elements(const expression_downsample& self, size_t index,
                                                 axis_params<0, N>) CMT_NOEXCEPT
     {
-        const vec<T, N* 2> x = get_elements(self.first(), index * 2, axis_params<0, N * 2>());
+        const vec<T, N * 2> x = get_elements(self.first(), index * 2, axis_params<0, N * 2>());
         return x.shuffle(csizeseq<N, offset, 2>);
     }
 };
@@ -357,7 +284,7 @@ struct expression_downsample<4, offset, E> : expression_with_arguments<E>
     KFR_INTRINSIC friend vec<T, N> get_elements(const expression_downsample& self, index_t index,
                                                 axis_params<0, N>) CMT_NOEXCEPT
     {
-        const vec<T, N* 4> x = get_elements(self.first(), index * 4, axis_params<0, N * 4>());
+        const vec<T, N * 4> x = get_elements(self.first(), index * 4, axis_params<0, N * 4>());
         return x.shuffle(csizeseq<N, offset, 4>);
     }
 };

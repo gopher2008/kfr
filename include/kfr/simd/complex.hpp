@@ -27,6 +27,7 @@
 #include "constants.hpp"
 #include "impl/function.hpp"
 #include "operators.hpp"
+#include <complex>
 
 CMT_PRAGMA_MSVC(warning(push))
 CMT_PRAGMA_MSVC(warning(disable : 4814))
@@ -34,138 +35,11 @@ CMT_PRAGMA_MSVC(warning(disable : 4814))
 namespace kfr
 {
 
-inline namespace CMT_ARCH_NAME
-{
-
-#ifndef KFR_STD_COMPLEX
-template <typename T>
-KFR_INTRINSIC complex<T> operator+(const complex<T>& x, const complex<T>& y)
-{
-    return (make_vector(x) + make_vector(y))[0];
-}
-template <typename T>
-KFR_INTRINSIC complex<T> operator-(const complex<T>& x, const complex<T>& y)
-{
-    return (make_vector(x) - make_vector(y))[0];
-}
-template <typename T>
-KFR_INTRINSIC complex<T> operator*(const complex<T>& x, const complex<T>& y)
-{
-    return (make_vector(x) * make_vector(y))[0];
-}
-template <typename T>
-KFR_INTRINSIC complex<T> operator/(const complex<T>& x, const complex<T>& y)
-{
-    return (make_vector(x) / make_vector(y))[0];
-}
-template <typename T>
-KFR_INTRINSIC complex<T>& operator+=(complex<T>& x, const complex<T>& y)
-{
-    x = x + y;
-    return x;
-}
-template <typename T>
-KFR_INTRINSIC complex<T>& operator-=(complex<T>& x, const complex<T>& y)
-{
-    x = x - y;
-    return x;
-}
-template <typename T>
-KFR_INTRINSIC complex<T>& operator*=(complex<T>& x, const complex<T>& y)
-{
-    x = x * y;
-    return x;
-}
-template <typename T>
-KFR_INTRINSIC complex<T>& operator/=(complex<T>& x, const complex<T>& y)
-{
-    x = x / y;
-    return x;
-}
-
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator+(const complex<T>& x, const U& y)
-{
-    return static_cast<C>(x) + static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator-(const complex<T>& x, const U& y)
-{
-    return static_cast<C>(x) - static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator*(const complex<T>& x, const U& y)
-{
-    return static_cast<C>(x) * static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator/(const complex<T>& x, const U& y)
-{
-    return static_cast<C>(x) / static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>)>
-KFR_INTRINSIC complex<T>& operator+=(complex<T>& x, const U& y)
-{
-    x = x + y;
-    return x;
-}
-template <typename T, typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>)>
-KFR_INTRINSIC complex<T>& operator-=(complex<T>& x, const U& y)
-{
-    x = x - y;
-    return x;
-}
-template <typename T, typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>)>
-KFR_INTRINSIC complex<T>& operator*=(complex<T>& x, const U& y)
-{
-    x = x * y;
-    return x;
-}
-template <typename T, typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>)>
-KFR_INTRINSIC complex<T>& operator/=(complex<T>& x, const U& y)
-{
-    x = x / y;
-    return x;
-}
-
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator+(const U& x, const complex<T>& y)
-{
-    return static_cast<C>(x) + static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator-(const U& x, const complex<T>& y)
-{
-    return static_cast<C>(x) - static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator*(const U& x, const complex<T>& y)
-{
-    return static_cast<C>(x) * static_cast<C>(y);
-}
-template <typename T, typename U, KFR_ENABLE_IF(is_number<U>), typename C = std::common_type_t<complex<T>, U>>
-KFR_INTRINSIC C operator/(const U& x, const complex<T>& y)
-{
-    return static_cast<C>(x) / static_cast<C>(y);
-}
-template <typename T>
-KFR_INTRINSIC complex<T> operator-(const complex<T>& x)
-{
-    return (-make_vector(x))[0];
-}
-template <typename T>
-KFR_INTRINSIC complex<T> operator+(const complex<T>& x)
-{
-    return x;
-}
-#endif
-
-} // namespace CMT_ARCH_NAME
 } // namespace kfr
 namespace cometa
 {
 template <typename T>
-struct compound_type_traits<kfr::complex<T>>
+struct compound_type_traits<std::complex<T>>
 {
     constexpr static size_t width      = 2;
     constexpr static size_t deep_width = width * compound_type_traits<T>::width;
@@ -174,11 +48,11 @@ struct compound_type_traits<kfr::complex<T>>
     constexpr static bool is_scalar    = false;
     constexpr static size_t depth      = cometa::compound_type_traits<T>::depth + 1;
     template <typename U>
-    using rebind = kfr::complex<U>;
+    using rebind = std::complex<U>;
     template <typename U>
-    using deep_rebind = kfr::complex<typename compound_type_traits<subtype>::template deep_rebind<U>>;
+    using deep_rebind = std::complex<typename compound_type_traits<subtype>::template deep_rebind<U>>;
 
-    static constexpr subtype at(const kfr::complex<T>& value, size_t index)
+    static constexpr subtype at(const std::complex<T>& value, size_t index)
     {
         return index == 0 ? value.real() : value.imag();
     }
@@ -437,6 +311,10 @@ struct vec_of_complex
     using type = vec<complex<T>, N>;
 };
 } // namespace CMT_ARCH_NAME
+
+template <typename T>
+constexpr bool is_complex = internal::is_complex_impl<T>::value;
+
 } // namespace kfr
 
 namespace std

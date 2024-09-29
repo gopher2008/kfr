@@ -3,7 +3,7 @@
  * Copyright (C) 2016-2023 Dan Cazarin
  * See LICENSE.txt for details
  */
-#include "../../numeric_tests.hpp"
+#include "../numeric_tests.hpp"
 
 #include <kfr/math/log_exp.hpp>
 
@@ -24,7 +24,7 @@ TEST(cbrt)
 {
     CHECK(kfr::cbrt(27.f) == 3.f);
     CHECK(kfr::cbrt(-27.f) == -3.f);
-    
+
     CHECK(kfr::root(32.f, 5.f) == 2.f);
     CHECK(kfr::root(-32.f, 5.f) == -2.f);
     CHECK(std::isnan(kfr::root(-32.f, 5.001f)));

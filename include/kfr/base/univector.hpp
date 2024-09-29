@@ -298,6 +298,8 @@ struct alignas(platform<>::maximum_vector_alignment) univector
     : std::array<T, Size>,
       univector_base<T, univector<T, Size>, is_vec_element<T>>
 {
+    static_assert(!std::is_const_v<T>, "Static vector doesn't allow T to be const");
+    
     using std::array<T, Size>::size;
     using size_type = size_t;
 #if !defined CMT_COMPILER_MSVC || defined CMT_COMPILER_CLANG
@@ -395,6 +397,8 @@ struct univector<T, tag_dynamic_vector>
     : std::vector<T, data_allocator<T>>,
       univector_base<T, univector<T, tag_dynamic_vector>, is_vec_element<T>>
 {
+    static_assert(!std::is_const_v<T>, "Dynamic vector doesn't allow T to be const");
+
     using std::vector<T, data_allocator<T>>::size;
     using std::vector<T, data_allocator<T>>::vector;
     using size_type = size_t;
@@ -455,7 +459,7 @@ struct univector<T, tag_dynamic_vector>
         new (this) univector(other);
         return *this;
     }
-    univector& operator=(univector&& other) 
+    univector& operator=(univector&& other)
     {
         this->~univector();
         new (this) univector(std::move(other));
@@ -463,12 +467,9 @@ struct univector<T, tag_dynamic_vector>
     }
 #else
     univector& operator=(const univector&) = default;
-    univector& operator=(univector&&) = default;
+    univector& operator=(univector&&)      = default;
 #endif
-    KFR_MEM_INTRINSIC univector& operator=(univector& other)
-    {
-        return operator=(std::as_const(other));
-    }
+    KFR_MEM_INTRINSIC univector& operator=(univector& other) { return operator=(std::as_const(other)); }
     template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
     KFR_MEM_INTRINSIC univector& operator=(Input&& input)
     {
@@ -704,7 +705,7 @@ struct representation<fmt_t<kfr::univector<T, Tag>, t, width, prec>>
     using type = std::string;
     static std::string get(const fmt_t<kfr::univector<T, Tag>, t, width, prec>& value)
     {
-        return array_to_string<fmt_t<T, t, width, prec>>(value.size(), value.data());
+        return array_to_string<fmt_t<T, t, width, prec>>(value.value.size(), value.value.data());
     }
 };
 

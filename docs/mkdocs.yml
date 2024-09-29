@@ -27,7 +27,7 @@ extra:
     - icon: fontawesome/brands/twitter
       link: 'https://twitter.com/kfrlib'
 
-copyright: 'Copyright &copy; 2016 - 2023 KFR'
+copyright: 'Copyright &copy; 2016 - 2024 KFR'
 
 plugins:
     - search
@@ -58,17 +58,17 @@ extra_css:
 
 repo_url: https://github.com/kfrlib/kfr
 repo_name: KFR
-edit_uri: edit/master/docs/
+edit_uri: edit/main/docs/
 
 nav:
   - KFR:
     - index.md
-    - whatsnew5.md
+    - whatsnew6.md
     - installation.md
     - basics.md
     - expressions.md
     - capi.md
-    - upgrade5.md
+    - upgrade6.md
   - DSP:
     - fir.md
     - bq.md
@@ -107,6 +107,7 @@ nav:
       - auto/horizontal.md
       - auto/other_math.md
     - Base:
+      - auto/base.md
       - auto/types.md
       - auto/univector.md
       - auto/tensor.md
@@ -118,6 +119,7 @@ nav:
       - auto/conversion.md
       - auto/sort.md
       - auto/utility.md
+      - auto/array.md
     - DSP:
       - auto/filter.md
       - auto/biquad.md

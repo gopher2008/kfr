@@ -46,6 +46,34 @@ KFR_INTRINSIC void write(T* dest, const vec<T, N>& value)
     intrinsics::write(cbool<A>, ptr_cast<deep_subtype<T>>(dest), value.flatten());
 }
 
+namespace internal
+{
+template <size_t group, size_t count, size_t N, bool A, typename T, size_t... indices>
+KFR_INTRINSIC vec<T, group * count * N> read_group_impl(const T* src, size_t stride, csizes_t<indices...>)
+{
+    return concat(intrinsics::read(cbool<A>, csize<N * group>, src + group * stride * indices)...);
+}
+template <size_t group, size_t count, size_t N, bool A, typename T, size_t... indices>
+KFR_INTRINSIC void write_group_impl(T* dest, size_t stride, const vec<T, group * count * N>& value,
+                                    csizes_t<indices...>)
+{
+    swallow{ (write<A>(dest + group * stride * indices, slice<group * indices * N, group * N>(value)),
+              0)... };
+}
+} // namespace internal
+
+template <size_t count, size_t N, size_t group = 1, bool A = false, typename T>
+KFR_INTRINSIC vec<T, group * count * N> read_group(const T* src, size_t stride)
+{
+    return internal::read_group_impl<group, count, N, A>(ptr_cast<T>(src), stride, csizeseq_t<count>());
+}
+
+template <size_t count, size_t N, size_t group = 1, bool A = false, typename T>
+KFR_INTRINSIC void write_group(T* dest, size_t stride, const vec<T, group * count * N>& value)
+{
+    return internal::write_group_impl<group, count, N, A>(dest, stride, value, csizeseq_t<count>());
+}
+
 template <typename... Indices, typename T, size_t Nout = 1 + sizeof...(Indices)>
 KFR_INTRINSIC vec<T, Nout> gather(const T* base, size_t index, Indices... indices)
 {
@@ -127,7 +155,7 @@ KFR_INTRINSIC vec<T, N * groupsize> gather(const T* base, const vec<IT, N>& offs
 
 namespace internal
 {
-template <size_t groupsize, typename T, size_t N, size_t Nout = N* groupsize, typename IT, size_t... Indices>
+template <size_t groupsize, typename T, size_t N, size_t Nout = N * groupsize, typename IT, size_t... Indices>
 KFR_INTRINSIC void scatter_helper(T* base, const vec<IT, N>& offset, const vec<T, Nout>& value,
                                   csizes_t<Indices...>)
 {
@@ -142,7 +170,7 @@ KFR_INTRINSIC void scatter_helper_s(T* base, size_t stride, const vec<T, N>& val
 }
 } // namespace internal
 
-template <size_t groupsize = 1, typename T, size_t N, size_t Nout = N* groupsize, typename IT>
+template <size_t groupsize = 1, typename T, size_t N, size_t Nout = N * groupsize, typename IT>
 KFR_INTRINSIC void scatter(T* base, const vec<IT, N>& offset, const vec<T, Nout>& value)
 {
     return internal::scatter_helper<groupsize>(base, offset, value, csizeseq<N>);

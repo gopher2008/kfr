@@ -100,8 +100,7 @@ struct expression_traits<expression_counter<T, Dims>> : expression_traits_defaul
     constexpr static shape<dims> get_shape() { return shape<dims>(infinite_size); }
 };
 
-template <typename T = int, typename Arg = T, typename... Args,
-          typename Tout = std::common_type_t<T, Arg, Args...>>
+template <typename T = int, typename Tout = T>
 KFR_INTRINSIC expression_counter<Tout, 1> counter(T start = 0)
 {
     return { static_cast<Tout>(std::move(start)), { static_cast<Tout>(1) } };
@@ -873,7 +872,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_concatenate<Arg1, Arg2, Co
 // ----------------------------------------------------------------------------
 
 template <typename... Args>
-using expression_pack = expression_function<fn::packtranspose, Args...>;
+using expression_pack = expression_make_function<fn::packtranspose, Args...>;
 
 template <typename... Args, KFR_ACCEPT_EXPRESSIONS(Args...)>
 KFR_INTRINSIC expression_pack<Args...> pack(Args&&... args)
